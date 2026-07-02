@@ -8,7 +8,7 @@ A pitch quality model built in Python using 2025 MLB Statcast data, designed to 
 
 Stuff+ is a pitch quality metric that evaluates how good a pitch is based purely on its physical characteristics, independent of outcomes like contact or hits. A score of 100 represents league average for a given pitch type, with every point above or below representing a percentage better or worse than average. This project builds a Stuff+ model from scratch using Statcast pitch tracking data and gradient boosting machine learning, with the goal of producing an analytical tool that can evaluate individual pitches, pitcher arsenals, and pitch quality trends across the 2025 MLB season.
 
-This project was built as a portfolio piece in pursuit of a career in MLB analytics.
+<!-- This project was built as a portfolio piece in pursuit of a career in MLB analytics. -->
 
 ---
 
