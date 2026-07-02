@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import os
 
 # FF - Four-seam fastball
 # SI - Sinker
@@ -18,42 +19,50 @@ import numpy as np
 # FO - Forkball
 
 df = pd.read_csv(r"C:\Users\colez\Documents\GitHub\mlb-stuff-plus-model\data\processed\pitches_scored.csv")
+OUTPUT_DIR = r"C:\Users\colez\Documents\GitHub\mlb-stuff-plus-model\outputs\figures"
 
 leaderboard = df.groupby(['player_name','pitch_type'])['stuff_plus'].agg(['mean','count']).reset_index()
 leaderboard = leaderboard[leaderboard['count'] > 100 ] 
 leaderboard = leaderboard.rename(columns={'mean':'stuff_plus'})
 leaderboard = leaderboard.sort_values('stuff_plus',ascending=False)
 top20 = leaderboard.head(20)
-# print(leaderboard.sort_values('stuff_plus', ascending=True).head(20))
-# print(top20)
 
 vertical = 'pfx_z'
 horizontal = 'pfx_x'
 
-def plot_pitch_landscape(pitcher_name, pitch_type_code, movement):
+
+def plot_pitch_landscape(pitcher_name, pitch_type_code, movement, show=True):
     df_pitch = df[df['pitch_type'] == pitch_type_code]
     df_pitcher = df[(df['pitch_type'] == pitch_type_code) & (df['player_name'] == pitcher_name)]
     x = df_pitch['release_speed']
     y = df_pitch[movement]
     color = df_pitch['stuff_plus']
-    plt.figure(figsize=(10,8))
-    plt.hexbin(x, y, C=color, gridsize=20, cmap='RdYlBu_r', reduce_C_function=np.mean, 
+
+    fig = plt.figure(figsize=(10, 8))
+    plt.hexbin(x, y, C=color, gridsize=20, cmap='RdYlBu_r', reduce_C_function=np.mean,
                vmin=85, vmax=115)
     plt.colorbar(label='Stuff+')
-    plt.title('2025 '+pitch_type_code+" Stuff+ Landscape")
-    plt.xlabel('velocity')
     if movement == 'pfx_z':
         plt.ylabel('vertical movement')
+        move_label = 'Vertical'
     else:
         plt.ylabel('horizontal movement')
+        move_label = 'Horizontal'
+    plt.title(pitcher_name + ' 2025 ' + pitch_type_code + ' ' + move_label + ' Stuff+ Landscape')
+    plt.xlabel('velocity')
     plt.scatter(df_pitcher['release_speed'].mean(),
                 df_pitcher[movement].mean(),
-                color='black', s=200, zorder=5, label=pitcher_name+' '+pitch_type_code
+                color='black', s=200, zorder=5, label=pitcher_name + ' ' + pitch_type_code
                 )
     plt.axvline(x=df_pitcher['release_speed'].mean(), color='black')
     plt.axhline(y=df_pitcher[movement].mean(), color='black')
     plt.legend()
-    plt.show()
+
+    if show:
+        plt.show()
+
+    return fig
+
 
 def arsenal_table(pitcher_name):
     df_pitcher = df[df['player_name'] == pitcher_name]
@@ -61,28 +70,30 @@ def arsenal_table(pitcher_name):
     counts = df_pitcher.groupby('pitch_type')['pitch_type'].count()
     means['count'] = counts
     means['usage'] = (means['count'] / len(df_pitcher)) * 100
-    means = means.rename(columns = {
-    'stuff_plus': 'Stuff+',
-    'release_speed': 'Velo',
-    'release_spin_rate': 'Spin',
-    'pfx_x': 'H-Break',
-    'pfx_z': 'V-Break',
-    'usage': 'Usage%'
-    }).sort_values('Usage%',ascending=False).drop(columns=['count'])
+    means = means.rename(columns={
+        'stuff_plus': 'Stuff+',
+        'release_speed': 'Velo',
+        'release_spin_rate': 'Spin',
+        'pfx_x': 'H-Break',
+        'pfx_z': 'V-Break',
+        'usage': 'Usage%'
+    }).sort_values('Usage%', ascending=False).drop(columns=['count'])
     means = means.round(1)
     means = means[means['Usage%'] > 1]
     return means
 
-def movement_plot(pitcher_name):
+
+def movement_plot(pitcher_name, show=True):
     df_pitcher = df[df['player_name'] == pitcher_name]
-    plt.figure(figsize=(10,8))
-    plt.title(pitcher_name+' 2025 Pitch Movement')
+    fig = plt.figure(figsize=(10, 8))
+    plt.title(pitcher_name + ' 2025 Pitch Movement')
     plt.xlabel('Horizontal Break (in)')
     plt.ylabel('Vertical Break (in)')
     for pt in df_pitcher['pitch_type'].unique():
         df_pt = df_pitcher[df_pitcher['pitch_type'] == pt]
         sc = plt.scatter(df_pt['pfx_x'], df_pt['pfx_z'], label=pt, alpha=0.4, s=10)
-        plt.scatter(df_pt['pfx_x'].mean(), df_pt['pfx_z'].mean(),color=sc.get_facecolor()[0], s=150, edgecolors='black', linewidths=1.5)
+        plt.scatter(df_pt['pfx_x'].mean(), df_pt['pfx_z'].mean(), color=sc.get_facecolor()[0],
+                    s=150, edgecolors='black', linewidths=1.5)
     for handle in plt.legend().legend_handles:
         handle.set_sizes([50])
     plt.axvline(x=0, color='black')
@@ -90,24 +101,41 @@ def movement_plot(pitcher_name):
     plt.legend()
     plt.xlim(-2.0, 2.0)
     plt.ylim(-2.0, 2.0)
+
+    if show:
+        plt.show()
+
+    return fig
+
+
+def save_plots(pitcher_name, output_dir, pitch_types=None):
+    # --- MOVEMENT ---
+    fig = movement_plot(pitcher_name, show=False)
+    fig.savefig(output_dir + fr"\{pitcher_name}_movement.png", dpi=150, bbox_inches="tight")
     plt.show()
+    plt.close(fig)
+
+    # --- if not provided, default to all ---
+    if pitch_types is None:
+        df_pitcher = df[df['player_name'] == pitcher_name]
+        pitch_types = df_pitcher['pitch_type'].unique()
+    elif isinstance(pitch_types, str):
+        pitch_types = [pitch_types]
+
+    # --- LANDSCAPE ---
+    for pt in pitch_types:
+        for movement in ['pfx_z', 'pfx_x']:
+            fig = plot_pitch_landscape(pitcher_name, pt, movement, show=False)
+            move_label = "vertical" if movement == "pfx_z" else "horizontal"
+            fig.savefig(
+                output_dir + fr"\{pitcher_name}_{pt}_{move_label}_landscape.png",
+                dpi=150,
+                bbox_inches="tight"
+            )
+            plt.show()
+            plt.close(fig)
 
 
-
-
-# plot_pitch_landscape('Duran, Jhoan', 'FS', vertical)
-# plot_pitch_landscape('Duran, Jhoan', 'FS', horizontal)
-# plot_pitch_landscape('Skubal, Tarik', 'CH', horizontal)
-# plot_pitch_landscape('Skenes, Paul', 'FF', vertical)
-# plot_pitch_landscape('Helsley, Ryan', 'FF', vertical)
-# plot_pitch_landscape('Clase, Emmanuel', 'FC', vertical)
-# plot_pitch_landscape('Crochet, Garrett', 'ST', horizontal)
-# plot_pitch_landscape('Hendricks, Kyle', 'FF', vertical)
-# plot_pitch_landscape('Senga, Kodai', 'SI', vertical)
-
-# print(arsenal_table('Skubal, Tarik'))
-# print(arsenal_table('Skenes, Paul'))
-# print(arsenal_table('Clase, Emmanuel'))
-
-print(movement_plot('Skubal, Tarik'))
-print(movement_plot('Skenes, Paul'))
+pitcher = 'Clase, Emmanuel'
+pitchType = 'FC'
+save_plots(pitcher, OUTPUT_DIR, pitchType)
