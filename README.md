@@ -20,7 +20,23 @@ All data was sourced from Baseball Savant via the pybaseball Python library.
 
 **Scoring data:** 2025 MLB regular season only (707,343 pitches, March 27 through September 28). All Stuff+ scores reflect 2025 pitch characteristics run through the historically trained model, consistent with how public Stuff+ models operate.
 
-Pitch types with insufficient data or unreliable classifications were removed before training. The 13 retained pitch types are FF, SI, FC, SL, ST, CU, CH, KC, FS, SV, CS, KN, and FO.
+Pitch types with insufficient data or unreliable classifications were removed before training. The 13 retained pitch types are listed below:
+
+| Code | Pitch Name |
+|---|---|
+| FF | Four-seam fastball |
+| SI | Sinker |
+| FC | Cutter |
+| SL | Slider |
+| ST | Sweeper |
+| CU | Curveball |
+| CH | Changeup |
+| KC | Knuckle curve |
+| FS | Splitter |
+| SV | Slurve |
+| CS | Slow curve |
+| KN | Knuckleball |
+| FO | Forkball |
 
 ---
 
